@@ -13,12 +13,24 @@
 
       <label>
         Correo electrónico
-        <input type="email" name="email" placeholder="tucorreo@ejemplo.com" required />
+        <input
+          type="email"
+          name="email"
+          placeholder="tucorreo@ejemplo.com"
+          required
+          maxlength="254"
+        />
       </label>
 
       <label>
         Contraseña
-        <input type="password" name="password" placeholder="••••••••" required />
+        <input
+          type="password"
+          name="password"
+          placeholder="••••••••"
+          required
+          maxlength="50"
+        />
       </label>
 
       <button type="submit">Iniciar Sesión</button>
@@ -30,7 +42,7 @@
   <div id="toast-box"></div>
 
   <script type="module">
-    import { API   } from './js/api.js';
+    import { API } from './js/api.js';
     import { toast } from './js/toast.js';
 
     const form = document.querySelector('.login-form');

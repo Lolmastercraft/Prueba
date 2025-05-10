@@ -33,11 +33,51 @@
     <section id="alta-producto" class="admin-panel">
       <h2>Crear Nuevo Vinilo</h2>
       <form id="add-form" class="add-form">
-        <input name="product_id" placeholder="ID" required />
-        <input name="title" placeholder="Título" required />
-        <input name="price" type="number" step="0.01" placeholder="Precio" required />
-        <input name="stock" type="number" placeholder="Stock" required />
-        <input name="img" placeholder="URL imagen (opcional)" />
+        <!-- ID: máximo 50 caracteres -->
+        <input
+          name="product_id"
+          type="text"
+          placeholder="ID"
+          required
+          maxlength="50"
+        />
+
+        <!-- Título: máximo 50 caracteres -->
+        <input
+          name="title"
+          type="text"
+          placeholder="Título"
+          required
+          maxlength="50"
+        />
+
+        <!-- Precio: no negativo -->
+        <input
+          name="price"
+          type="number"
+          step="0.01"
+          placeholder="Precio"
+          required
+          min="0"
+        />
+
+        <!-- Stock: entre 0 y 1000 -->
+        <input
+          name="stock"
+          type="number"
+          placeholder="Stock"
+          required
+          min="0"
+          max="1000"
+        />
+
+        <!-- URL imagen: sin límite de caracteres -->
+        <input
+          name="img"
+          type="url"
+          placeholder="URL imagen (opcional)"
+        />
+
         <button type="submit">Crear</button>
       </form>
     </section>
@@ -46,7 +86,15 @@
     <section id="inventario" class="admin-panel">
       <h2>Productos en tienda</h2>
       <table id="prod-table">
-        <thead><tr><th>ID</th><th>Título</th><th>Stock</th><th>Precio</th><th>Acciones</th></tr></thead>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Stock</th>
+            <th>Precio</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -55,7 +103,9 @@
     <section id="usuarios" class="admin-panel">
       <h2>Gestión de Usuarios</h2>
       <table id="users-table">
-        <thead><tr><th>Email</th><th>Usuario</th><th>Acciones</th></tr></thead>
+        <thead>
+          <tr><th>Email</th><th>Usuario</th><th>Acciones</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -64,7 +114,9 @@
     <section id="pedidos" class="admin-panel">
       <h2>Pedidos realizados</h2>
       <table id="ord-table">
-        <thead><tr><th>#Orden</th><th>Usuario</th><th>Total</th><th>Ítems</th></tr></thead>
+        <thead>
+          <tr><th>#Orden</th><th>Usuario</th><th>Total</th><th>Ítems</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -98,7 +150,15 @@
     document.getElementById('add-form').addEventListener('submit', async e => {
       e.preventDefault();
       const datos = Object.fromEntries(new FormData(e.target).entries());
-      const res   = await API.createProduct(datos);
+
+      // Validar stock antes de enviar
+      const stockNum = Number(datos.stock);
+      if (isNaN(stockNum) || stockNum < 0 || stockNum > 1000) {
+        toast('El stock debe ser un número entre 0 y 1000', true);
+        return;
+      }
+
+      const res = await API.createProduct(datos);
       toast(res.message || res.error, !!res.error);
       if (!res.error) {
         e.target.reset();
@@ -122,18 +182,30 @@
           </td>
         </tr>`).join('');
     }
+
     prodBody.addEventListener('click', async e => {
       const row = e.target.closest('tr');
       if (!row) return;
       const pid = row.dataset.id;
 
+      // Editar stock
       if (e.target.classList.contains('edit-prod')) {
-        const stock = prompt('Nuevo stock:', row.children[2].textContent);
-        if (!stock) return;
-        const res = await API.updateProduct(pid, { stock: Number(stock) });
+        const current = row.children[2].textContent;
+        const stockStr = prompt('Nuevo stock (0–1000):', current);
+        if (stockStr === null) return;  // canceló
+        const newStock = Number(stockStr);
+
+        if (isNaN(newStock) || newStock < 0 || newStock > 1000) {
+          toast('El stock debe ser un número entre 0 y 1000', true);
+          return;
+        }
+
+        const res = await API.updateProduct(pid, { stock: newStock });
         toast(res.message || res.error, !!res.error);
         loadProducts();
       }
+
+      // Eliminar producto
       if (e.target.classList.contains('del-prod') &&
           confirm('¿Eliminar producto?')) {
         const res = await API.deleteProduct(pid);
@@ -162,10 +234,8 @@
       const uid = row.dataset.id;
 
       if (e.target.classList.contains('edit-user')) {
-        const nuevoNombre = prompt('Nuevo nombre de usuario:',
-                                   row.children[1].textContent);
-        const nuevoMail   = prompt('Nuevo correo electrónico:',
-                                   row.children[0].textContent);
+        const nuevoNombre = prompt('Nuevo nombre de usuario:', row.children[1].textContent);
+        const nuevoMail   = prompt('Nuevo correo electrónico:', row.children[0].textContent);
         if (!nuevoNombre || !nuevoMail) return;
         const res = await API.updateUser(uid, {
           username: nuevoNombre.trim(),
@@ -190,7 +260,7 @@
       ordBody.innerHTML = ords.map(o => `
         <tr>
           <td>${o.order_id.slice(0, 8)}…</td>
-          <td>${o.username}</td>          <!-- ahora mostramos el username -->
+          <td>${o.username}</td>
           <td>$${o.total}</td>
           <td>${o.items.length}</td>
         </tr>`).join('');
